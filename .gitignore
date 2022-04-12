@@ -1,0 +1,6 @@
+# created by virtualenv automatically
+.idea
+.ipynb_checkpoints
+venv
+
+__pycache__/fp_growth_py3.cpython-37.pyc
