@@ -1,6 +1,43 @@
 # frozenset() 返回一个冻结的集合，冻结后集合不能再添加或删除任何元素。
+import time
+
 import numpy as np
 import pandas as pd
+import math
+
+
+class node:
+    def __int__(self):
+        self.items = []
+        self.key = 0
+        self.sup = 0
+
+    def show(self):
+        print(self.items, bin(self.key), end=" ")
+        try:
+            print(self.sup)
+        except:
+            print()
+            pass
+
+
+def ListToNode(items):
+    nodeT = node()
+    nodeT.key = 0
+    nodeT.items = items
+    for index, i in enumerate(defaultSL):  # 进行编码
+        if i in items:
+            nodeT.key += 1 << (len(defaultSL) - index - 1)
+    return nodeT
+
+
+def keyToList(key):
+    ans = []
+    global defaultSL
+    for i in range(1, len(defaultSL) + 1):
+        if key & (1 << (len(defaultSL)) - i) == (1 << (len(defaultSL)) - i):  # 含有第i个
+            ans.append(defaultSL[i - 1])
+    return ans
 
 
 def loadDataSet():
@@ -8,6 +45,13 @@ def loadDataSet():
 
     data = pd.read_csv("train.csv")
     data = data.sample(1000)
+    #     import copy
+    #     data = data.append(copy.deepcopy(data))
+    #     data = data.append(copy.deepcopy(data))
+    #     data = data.append(copy.deepcopy(data))
+    #     data = data.append(copy.deepcopy(data))
+    #     data = data.append(copy.deepcopy(data)) # 将数据扩大8倍
+    print(data.shape)
 
     def gerDoodAndBad(score):
         ans = []
@@ -36,9 +80,23 @@ def loadDataSet():
         return ans
 
     data['Apriori'] = data.apply(lambda x: gerDoodAndBad(x), axis=1)
-    print(data.head())
+    #     print(data.head())
 
     return np.array(data['Apriori'])
+
+
+def loadTest():
+    import json
+
+    f = open("para.json", 'r')
+    para = json.loads(f.read())
+
+    testD = pd.read_csv('testData')
+    testD = testD.head(para['testDataSize'])
+    testD.shape
+    npt = np.array(testD)
+    npt
+    return npt
 
 
 # 返回只有单个元素的候选集
@@ -63,43 +121,87 @@ def scanD(D, Ck, minSupport):
         计算Ck中的项集在数据集合D(记录或者transactions)中的支持度,
         返回满足最小支持度的项集的集合，和所有项集支持度信息的字典。
     '''
-    ssCnt = {}
-    for tid in D:  # 对于每一条transaction
-        for can in Ck:  # 对于每一个候选项集can，检查是否是transaction的一部分 # 即该候选can是否得到transaction的支持
-            if can.issubset(tid):
-                ssCnt[can] = ssCnt.get(can, 0) + 1
-    numItems = float(len(D))
-    # print("ssCnt is",ssCnt)
-    retList = []
-    supportData = {}
-    for key in ssCnt:
-        support = ssCnt[key] / numItems  # 每个项集的支持度
-        if support >= minSupport:  # 将满足最小支持度的项集，加入retList
-            retList.insert(0, key)
-        supportData[key] = support  # 汇总支持度数据
-    return retList, supportData
+    print(len(Ck))
+
+    for i in Ck:
+        i.sup = 0
+        for item in D:
+            if i.key & item.key == i.key:  # 与运算判断子集
+                i.sup += 1
+    ans = []
+    length = len(D)
+    for i in Ck:
+        i.sup = i.sup / length
+        if i.sup >= minSupport:
+            ans.append(i)
+            # i.show()
+    return ans
 
 
-def aprioriGen(Lk, k):  # Aprior算法
+def aprioriGen(Lk, k, L):  # Aprior算法
     '''
-        两相比较，如果前k-1个元素一样，那么第k个元素一定不一样，那么可以生成出k+1个元素大小的元素，时间复杂度为n^2 *(n log(n))
-
         由初始候选项集的集合Lk生成新的生成候选项集，
         k表示生成的新项集中所含有的元素个数
         注意其生成的过程中，首选对每个项集按元素排序，然后每次比较两个项集，只有在前k-1项相同时才将这两项合并。这样做是因为函数并非要两两合并各个集合，那样生成的集合并非都是k+1项的。在限制项数为k+1的前提下，只有在前k-1项相同、最后一项不相同的情况下合并才为所需要的新候选项集。
     '''
-    retList = []
-    lenLk = len(Lk)
-    for i in range(lenLk):
-        for j in range(i + 1, lenLk):
-            L1 = list(Lk[i])[: k - 2];
-            L2 = list(Lk[j])[: k - 2];
-            L1.sort()
-            L2.sort()
-            # print(L1,L2)
-            if L1 == L2:
-                retList.append(Lk[i] | Lk[j])
-    return retList
+
+    #     print(k)
+    left = []  # 存储积最小的两组
+    right = []
+    lastl = None  # 存储积次小的两组
+    lastr = None
+    minV = 999999999
+    minV2 = 999999999
+    ans = []
+    nowSet = set()
+    for i in range(1, math.ceil(k / 2) + 1):
+        A = L[i - 1]
+        B = L[k - i - 1]
+        #         print(len(A[0].items),len(B[0].items) )
+        # print(len(A), len(B))
+        if len(A) * len(B) < minV:  # 如果比最小的更小,更新最小的,且更新次小的
+            lastl = left
+            lastr = right
+            left = A
+            right = B
+            minV2 = minV
+            minV = len(A) * len(B)
+        elif len(A) * len(B) < minV2:  # 如果没有比更小的小，但是比次小的小，那么更新次小的
+            lastl = A
+            lastr = B
+            minV2 = len(A) * len(B)
+
+    for i in left:
+        for j in right:
+            if i.key & j.key == 0:  # 这俩频繁集合不相交
+                t = i.key | j.key
+                if t not in nowSet:
+                    nowSet.add(t)
+                    nodeT = node()
+                    nodeT.key = t
+                    #                         nodeT.items = keyToList(nodeT.key)  #生成新的items
+                    ans.append(nodeT)
+
+            # 在另一组分布里面求可能的组合，然后两个组合取交集
+    returnList = []
+    nowSet2 = set()
+    if k > 30:
+        # print(lastl)
+        left = lastl
+        right = lastr
+        for i in left:
+            for j in right:
+                if i.key & j.key == 0:  # 这俩频繁集合不相交
+                    t = i.key | j.key
+                    # print(bin(t))
+                    if t not in nowSet2 and t in nowSet :
+                        nowSet2.add(t)
+                        nodeT = node()
+                        nodeT.key = t
+                        #                         nodeT.items = keyToList(nodeT.key)  #生成新的items
+                        returnList.append(nodeT)
+        return returnList
+    return ans
 
 
 def apriori(dataSet, minSupport=0.5):
@@ -109,31 +211,39 @@ def apriori(dataSet, minSupport=0.5):
     :param minSupport:
     :return:
     """
-    C1 = createC1(dataSet)  # 构建初始候选项集C1  [frozenset({1}), frozenset({2}), frozenset({3}), frozenset({4}), frozenset({5})]
+    # C1 = createC1(dataSet)  # 构建初始候选项集C1  [frozenset({1}), frozenset({2}), frozenset({3}), frozenset({4}), frozenset({5})]
+    global defaultSL
+    global defaultS
 
-    D = [set(var) for var in dataSet]  # 集合化数据集
-    L1, suppData = scanD(D, C1, minSupport)  # 构建初始的频繁项集，即所有项集只有一个元素
-    L = [L1]  # 最初的L1中的每个项集含有一个元素，新生成的
+    #     print(defaultSL)
+    C1 = [ListToNode([i]) for i in defaultSL]
+
+    # D = [set(var) for var in dataSet]  # 集合化数据集
+
+    F1 = scanD(dataSet, C1, minSupport)  # 构建初始的频繁项集，即所有项集只有一个元素
+
     # print()
+    L = [F1]
     k = 2  # 项集应该含有2个元素，所以 k=2
 
     while (len(L[k - 2]) > 0):
-        Ck = aprioriGen(L[k - 2], k)
-        # print(Ck)
-        Lk, supK = scanD(D, Ck, minSupport) # 筛选最小支持度的频繁项集
-        # print("iter is ")
-        # print(Ck)
-        # print(Lk)
-        # print()
-        suppData.update(supK)  # 将新的项集的支持度数据加入原来的总支持度字典中
-        L.append(Lk)  # 将符合最小支持度要求的项集加入L
+        print("iter is ", k)
+        t = time.time()
+        Ck = aprioriGen(L[k - 2], k, L)  # 计算候选集
+        print(f'gen coast:{time.time() - t:.8f}s')
+        t = time.time()
+
+        Fk = scanD(dataSet, Ck, minSupport)  # 筛选最小支持度的频繁项集
+        print(f'scan coast:{time.time() - t:.8f}s')
+
+        L.append(Fk)  # 将符合最小支持度要求的项集加入L
         k += 1  # 新生成的项集中的元素个数应不断增加
-    return L, suppData  # 返回所有满足条件的频繁项集的列表，和所有候选项集的支持度信息
+    return L  # 返回所有满足条件的频繁项集的列表，和所有候选项集的支持度信息
 
 
 def calcConf(freqSet, H, supportData, brl, minConf=0.7):  # 规则生成与评价
     '''
-        计算规则的可信度，返回满足最小可信度的规则。 freqSet - conseq -> conseq
+        计算规则的可信度，返回满足最小可信度的规则。
         freqSet(frozenset):频繁项集
         H(frozenset):频繁项集中所有的元素
         supportData(dic):频繁项集中所有元素的支持度
@@ -189,10 +299,38 @@ def generateRules(L, supportData, minConf=0.7):
     return bigRuleList
 
 
-myDat = loadDataSet()  # 导入数据集
 
-L, suppData = apriori(myDat, 0.05)  # 选择频繁项集
-print(u"频繁项集L：", suppData)
-print(u"所有候选项集的支持度信息：", suppData)
-rules = generateRules(L, suppData, minConf=0.5)
-print('rules:\n', rules)
+
+defaultS = set()  # 存储所有单项的集合
+myDat = loadTest()  # 导入数据集
+for i in myDat:
+    for j in i:
+        if j not in defaultS:
+            defaultS.add(j)
+defaultSL = list(defaultS)
+defaultSL = sorted(defaultSL) # 把所有单项计算出来并排序，形成默认顺序，方便后面进行二进制编码
+print(defaultSL, len(defaultSL))
+Items = []
+
+
+
+#对项集进行二进制编码
+for items in myDat:
+    nodeT = node()
+    nodeT.key =0
+    nodeT.items = items
+    for index,i in enumerate(defaultSL): # 进行编码
+        if i in items:
+            nodeT.key += 1 << (len(defaultSL) - index -1)
+    Items.append(nodeT)
+    # print(items, bin(nodeT.key))
+import time
+t = time.time()
+
+L = apriori(Items, 0.3)  # 选择频繁项集
+# print(u"频繁项集L：")
+# for li in L:
+#     for i in li:
+#         i.show()
+print(f'total coast:{time.time() - t:.8f}s')
+
