@@ -1,5 +1,5 @@
-import json
+from redis import StrictRedis
 
-f = open("para.json", 'r')
-temp = json.loads(f.read())
-print(temp)
+redis = StrictRedis(host='110.40.204.239', port=6379, db=0, password='123456')
+redis.set('name', 'GEJI')
+print(redis.get('name'))
