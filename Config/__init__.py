@@ -10,7 +10,7 @@ para = json.loads(f.read())
 
 def loadTest():
     data = np.loadtxt(open(os.path.abspath(os.path.dirname(__file__)) +'/../testData', "r"), dtype=str, delimiter=",", skiprows=1)
-    data = data[0:para['testDataSize']]
+    data = data[0:para['testDataSize'],0:20]
     row, col = data.shape
     ans = []
     for i in range(row):
