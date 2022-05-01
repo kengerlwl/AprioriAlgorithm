@@ -88,7 +88,7 @@ def loadDataSet():
 def loadTest():
     import json
 
-    f = open("para.json", 'r')
+    f = open("Config/para.json", 'r')
     para = json.loads(f.read())
 
     testD = pd.read_csv('testData')
