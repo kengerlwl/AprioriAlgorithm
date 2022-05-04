@@ -10,7 +10,7 @@ para = json.loads(f.read())
 
 def loadTest():
     data = np.loadtxt(open(os.path.abspath(os.path.dirname(__file__)) +'/../testData', "r"), dtype=str, delimiter=",", skiprows=1)
-    data = data[0:para['testDataSize'],0:20]
+    data = data[0:para['testDataSize']]
     row, col = data.shape
     ans = []
     for i in range(row):
@@ -25,7 +25,7 @@ def loadTest():
 def loadDataSet():
     '''创建一个用于测试的简单的数据集'''
 
-    data = pd.read_csv(open(os.path.abspath(os.path.dirname(__file__)) +'/../train.csv'))
+    data = pd.read_csv(open(os.path.abspath(os.path.dirname(__file__)) +'/../StudentsPerformance.csv'))
     data = data.sample(1000)
 
     print(data.shape)
@@ -50,10 +50,11 @@ def loadDataSet():
         elif score['writing score'] < 50:
             ans.append('WB')
 
-        if score['test preparation course'] == 1:
+        if score['test preparation course'] == 'completed':
 
             ans.append("preparation")
-
+        ans.append(score['gender'])
+        ans.append(score['race/ethnicity'])
         return ans
 
     data['Apriori'] = data.apply(lambda x: gerDoodAndBad(x), axis=1)
