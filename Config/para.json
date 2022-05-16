@@ -1,5 +1,5 @@
 {
-  "testDataSize": 5000,
-  "minSupport": 0.42
+  "testDataSize": 100,
+  "minSupport": 0.22
 
 }
